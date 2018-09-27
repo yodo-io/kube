@@ -11,8 +11,10 @@
   - [Networking](#networking)
     - [Private Network](#private-network)
   - [Bootstrap](#bootstrap)
+  - [OpenVPN](#openvpn)
   - [Vault](#vault)
-  - [Next](#next)
+- [Port forward](#port-forward)
+- [Root token when using default k8s secret backend](#root-token-when-using-default-k8s-secret-backend)
 
 <!-- /TOC -->
 
@@ -190,6 +192,23 @@ Route tables:
 - Using helm for the rest
 - Make bootstrap, see `modules/bootstrap/charts.sh`
 
+## OpenVPN
+
+- OpenVPN is bootstrapped into the cluster via [stable/openvpn](https://github.com/helm/charts/tree/master/stable/openvpn)
+- Cluster DNS is forwarded
+- Generate a client config as below and connect using you favourite client:
+
+```sh
+./scripts/openvpn.sh <NAME> default openvpn
+```
+
+- Test DNS resolution:
+
+```sh
+$ dig openvpn.default.svc.cluster.local +short
+100.x.y.z
+```
+
 ## Vault
 
 - Using Banzai Clouds vault operator
@@ -202,17 +221,27 @@ Route tables:
 # Install vault
 helm repo add banzaicloud-stable http://kubernetes-charts.banzaicloud.com/branch/master
 helm install -f modules/bootstrap/resources/values/vault.yaml --name vault banzaicloud-stable/vault
+```
+
+- Connect to vault via port forwarding:
 
 # Port forward
 POD=`kubectl get pod -l app=vault -o name | awk -F '/' '{ print $2 }'`
 kubectl port-forward $POD 8200
+export VAULT_ADDR=`https://127.0.0.1:8200`
 
 # Root token when using default k8s secret backend
 export VAULT_TOKEN=`kubectl get secret bank-vaults -o json | jq -r '.data["vault-root"]' | base64 -D`
 vault token lookup -tls-skip-verify # ignore self-signed cert for now
 ```
 
-- UI: https://127.0.0.1:8200/ui :tada:
+- Or via [OpenVPN](#openvpn):
+
+```sh
+export VAULT_ADDR=`https://vault-vault.default.svc.cluster.local:8200`
+```
+
+- UI: https://vault-vault.default.svc.cluster.local:8200/ui :tada:
 
 TODO:
 
