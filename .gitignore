@@ -1,3 +1,4 @@
 .terraform
 terraform.tfstate.d
 tf-output/
+bin
